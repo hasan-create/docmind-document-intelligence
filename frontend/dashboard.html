@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>DocMind AI - Dashboard</title>
+
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================
+         NAVBAR
+    ========================== -->
+
+    <nav class="navbar">
+
+        <div class="navbar-brand">
+
+            <h2>DocMind AI</h2>
+
+            <span>
+                AI Document Intelligence
+            </span>
+
+        </div>
+
+
+        <button
+            id="logoutBtn"
+            class="logout-btn"
+        >
+            Logout
+        </button>
+
+    </nav>
+
+
+
+    <!-- =========================
+         DASHBOARD
+    ========================== -->
+
+    <main class="dashboard">
+
+
+        <!-- Header -->
+
+        <section class="dashboard-header">
+
+            <div>
+
+                <p class="eyebrow">
+                    DOCUMENT WORKSPACE
+                </p>
+
+                <h1>
+                    Your Documents
+                </h1>
+
+                <p class="dashboard-description">
+                    Upload a PDF and start asking questions
+                    using AI-powered document search.
+                </p>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================
+             UPLOAD
+        ========================== -->
+
+        <section class="upload-card">
+
+            <div class="upload-heading">
+
+                <div>
+
+                    <p class="section-label">
+                        NEW DOCUMENT
+                    </p>
+
+                    <h2>
+                        Upload a PDF
+                    </h2>
+
+                    <p>
+                        Your document will be processed,
+                        embedded and indexed automatically.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form id="uploadForm">
+
+
+                <!-- Title -->
+
+                <div class="form-group">
+
+                    <label for="title">
+                        Document Title
+                    </label>
+
+                    <input
+                        type="text"
+                        id="title"
+                        placeholder="e.g. AI Product Intelligence Report"
+                        required
+                    >
+
+                </div>
+
+
+
+                <!-- File -->
+
+                <div class="form-group">
+
+                    <label for="pdfFile">
+                        PDF Document
+                    </label>
+
+                    <div class="file-input-wrapper">
+
+                        <input
+                            type="file"
+                            id="pdfFile"
+                            accept=".pdf,application/pdf"
+                            required
+                        >
+
+                    </div>
+
+                    <small>
+                        PDF files only
+                    </small>
+
+                </div>
+
+
+
+                <!-- Upload -->
+
+                <button
+                    type="submit"
+                    id="uploadBtn"
+                    class="primary-btn upload-btn"
+                >
+
+                    <span id="uploadBtnText">
+                        Upload & Start Chat
+                    </span>
+
+                </button>
+
+
+            </form>
+
+
+            <!-- Status -->
+
+            <div
+                id="uploadStatus"
+                class="upload-status"
+            >
+
+                <div
+                    id="uploadLoader"
+                    class="upload-loader hidden"
+                >
+                </div>
+
+
+                <p id="uploadMessage"></p>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================
+             DOCUMENTS
+        ========================== -->
+
+        <section class="documents-section">
+
+
+            <div class="documents-heading">
+
+                <div>
+
+                    <p class="section-label">
+                        YOUR LIBRARY
+                    </p>
+
+                    <h2>
+                        Documents
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div id="documentsList">
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        📄
+                    </div>
+
+                    <h3>
+                        No documents loaded
+                    </h3>
+
+                    <p>
+                        Upload a PDF above to start
+                        chatting with your document.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================== -->
+
+    <script src="js/dashboard.js"></script>
+
+</body>
+
+</html>

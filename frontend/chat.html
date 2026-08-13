@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>DocMind AI - Chat</title>
+
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================
+         NAVBAR
+    ========================== -->
+
+    <nav class="navbar">
+
+        <h2>
+            DocMind AI
+        </h2>
+
+
+        <button id="backBtn">
+
+            Back to Dashboard
+
+        </button>
+
+    </nav>
+
+
+
+    <!-- =========================
+         CHAT
+    ========================== -->
+
+    <main class="chat-container">
+
+
+        <div class="chat-header">
+
+            <h1>
+                Document Chat
+            </h1>
+
+
+            <p id="documentInfo">
+
+                Ask questions about your uploaded document.
+
+            </p>
+
+        </div>
+
+
+
+        <!-- Messages -->
+
+        <div
+            id="chatMessages"
+            class="chat-messages"
+        >
+
+            <div class="chat-message ai">
+
+                👋 Hi! Ask me anything about this document.
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Question form -->
+
+        <form
+            id="chatForm"
+            class="chat-form"
+        >
+
+
+            <input
+                type="text"
+                id="question"
+                placeholder="Ask something about your document..."
+                autocomplete="off"
+                required
+            >
+
+
+            <button
+                type="submit"
+                class="primary-btn"
+            >
+
+                Ask
+
+            </button>
+
+
+        </form>
+
+
+
+        <p
+            id="chatError"
+            class="error-message"
+        ></p>
+
+
+    </main>
+
+
+
+    <script src="js/chat.js"></script>
+
+</body>
+
+</html>
