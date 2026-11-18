@@ -1,53 +1,38 @@
 # 🧠 DocMind AI
 
-### AI-Powered Document Intelligence & Retrieval System
+### AI-Powered Document Intelligence & Adaptive Hybrid RAG System
 
-DocMind AI is an intelligent document processing platform that allows users to upload PDF documents and interact with their content using natural language.
+DocMind AI is an intelligent document processing platform that lets users upload PDF documents, manage their document library, and ask natural-language questions grounded strictly in their uploaded files.
 
-Instead of sending an entire document to an LLM for every question, DocMind processes documents into searchable semantic representations and retrieves the most relevant information before generating an answer.
-
-The project is designed around a **Retrieval-Augmented Generation (RAG)** architecture with an adaptive retrieval strategy for handling both specific questions and complex document-level queries.
+Instead of sending an entire document to an LLM for every question or relying on naive single-pass top-k retrieval, DocMind AI combines **Hybrid Search (Dense Embeddings + BM25)** with a **4-Stage Adaptive RAG** pipeline that verifies evidence sufficiency, expands neighboring chunks when context is partial, and escalates document-wide queries to Map-Reduce Batch Analysis.
 
 ---
 
 ## ✨ Key Features
 
-* 📄 **PDF Document Processing**
+* 📄 **Smart PDF Ingestion & OCR Fallback**
+  * Fast text extraction (`pdfjs-dist` in Node.js / `PyMuPDF` in the Python AI service).
+  * Automatic Gemini multimodal OCR fallback for scanned or image-only PDFs.
+  * Paragraph- and sentence-aware recursive chunking (`1,800` chars, `200` overlap) preserving `chunk_order`.
 
-  * Upload and process PDF documents automatically.
-  * Extract text and divide documents into meaningful chunks.
+* 🔎 **Hybrid Search (Semantic Vectors + BM25)**
+  * Combines dense vector cosine similarity (`gemini-embedding-2` or local `all-MiniLM-L6-v2`) with local **BM25** lexical ranking (`0.6 * semantic + 0.4 * bm25`).
+  * Captures both semantic meaning/synonyms and exact identifiers, formulas, and codes.
+  * Gracefully falls back to BM25 if Free Tier embedding quotas are reached.
 
-* 🔎 **Semantic Document Search**
+* 🧠 **4-Stage Adaptive RAG Architecture**
+  * **Stage 1 — Initial Retrieval**: Fetches top candidate chunks via Hybrid Search.
+  * **Stage 2 — LLM Evidence Verification (`SUFFICIENT` / `PARTIAL` / `NONE`)**: Uses structured JSON output to evaluate whether the retrieved context completely answers the question.
+  * **Stage 3 — Nearby Chunks Expansion**: When evidence is `PARTIAL`, expands surrounding chunks (`chunk_order ± 1`) and re-verifies context.
+  * **Stage 4 — Batch Analysis → Final LLM**: When evidence is `NONE` or the query is document-wide (*summarize, count, list all*), scans ordered batches and synthesizes a final grounded answer.
 
-  * Convert document chunks into vector embeddings.
-  * Store and search embeddings using Qdrant.
-  * Retrieve context based on semantic similarity rather than simple keyword matching.
+* 📚 **Document Library & Formatted Chat UI**
+  * Upload, list, re-open, and delete documents from the Dashboard.
+  * Displays document metadata, chunk count, search mode, and the Adaptive RAG strategy used per answer.
+  * Renders structured Markdown answers (headings, bold labels, bullet/numbered lists, code blocks).
 
-* 🤖 **LLM-Powered Question Answering**
-
-  * Ask natural-language questions about uploaded documents.
-  * Retrieved document context is provided to the LLM for grounded responses.
-
-* 🧠 **Adaptive RAG Architecture**
-
-  * Starts with efficient semantic retrieval.
-  * Evaluates whether the retrieved context is sufficient for the user's query.
-  * Expands to neighboring chunks when information is incomplete.
-  * Can escalate complex document-wide queries to deeper document analysis.
-
-* 📚 **Context-Aware Retrieval**
-
-  * Documents are stored as ordered chunks.
-  * Neighboring chunks can be retrieved to recover information that spans multiple chunks.
-
-* 🔐 **Authenticated API**
-
-  * JWT-based authentication protects document and chat operations.
-
-* 💬 **Interactive Document Chat**
-
-  * Upload a document and directly start a conversation with it.
-  * Document-specific conversations are connected using the document ID.
+* 🔐 **JWT Authentication**
+  * Register, login, and protected document/chat endpoints via Bearer JWT tokens.
 
 ---
 
@@ -57,326 +42,139 @@ The project is designed around a **Retrieval-Augmented Generation (RAG)** archit
                          PDF DOCUMENT
                               │
                               ▼
-                     ┌─────────────────┐
-                     │  Text Extraction│
-                     └────────┬────────┘
-                              │
-                              ▼
-                         Text Chunks
-                              │
-                ┌─────────────┴─────────────┐
-                │                           │
-                ▼                           ▼
-        Embedding Model              Document Analysis
-                │                           │
-                ▼                           ▼
-             Qdrant                Structured Knowledge
-                │                           │
+                ┌───────────────────────────┐
+                │ Text Extraction + OCR     │
                 └─────────────┬─────────────┘
                               │
                               ▼
-                         User Query
+              Paragraph-Aware Chunks (1..N)
+                              │
+                ┌─────────────┴─────────────┐
+                ▼                           ▼
+       Dense Embeddings               BM25 Term Index
+     (Vector Store / Qdrant)            (Lexical)
+                │                           │
+                └─────────────┬─────────────┘
+                              ▼
+                          User Query
                               │
                               ▼
-                       Semantic Retrieval
+                    Hybrid Retrieval (Top-K)
                               │
                               ▼
-                      Retrieved Context
+                LLM Evidence Verification (JSON)
                               │
-                              ▼
-                       LLM Verification
-                              │
-                 ┌────────────┴────────────┐
-                 │                         │
-              Sufficient                Partial
-                 │                         │
-                 ▼                         ▼
-             LLM Answer             Nearby Chunks
-                                           │
-                                           ▼
-                                   Context Verification
-                                           │
-                                           ▼
-                                  Batch Analysis
-                                  (when required)
-                                           │
-                                           ▼
-                                      Final LLM
-                                           │
-                                           ▼
-                                         Answer
+           ┌──────────────────┼──────────────────┐
+           ▼                  ▼                  ▼
+       SUFFICIENT          PARTIAL             NONE /
+           │                  │             Document-Wide
+           │                  ▼                  │
+           │         Nearby Chunks               ▼
+           │        (chunk_order ± 1)      Batch Analysis
+           │                  │             (Map-Reduce)
+           │                  ▼                  │
+           │         Context Verification        │
+           │                  │                  │
+           │         ┌────────┴────────┐         │
+           │      SUFFICIENT       STILL PARTIAL │
+           │         │                 └────┬────┘
+           ▼         ▼                      ▼
+        Formatted Answer               Final LLM
+                                            │
+                                            ▼
+                                    Formatted Answer
 ```
-
----
-
-## 🔄 How It Works
-
-### 1. Document Upload
-
-The user uploads a PDF through the web interface.
-
-```text
-PDF
- ↓
-Django REST API
- ↓
-Document Processing
-```
-
-The document is stored and assigned a unique document ID.
-
----
-
-### 2. Text Extraction & Chunking
-
-The PDF is converted into text and divided into smaller chunks.
-
-Each chunk maintains its position in the document using a `chunk_order`.
-
-```text
-Document
- ├── Chunk 1
- ├── Chunk 2
- ├── Chunk 3
- ├── ...
- └── Chunk N
-```
-
-Keeping the original order allows DocMind to recover surrounding context when a retrieved chunk contains only part of the required information.
-
----
-
-### 3. Embedding Generation
-
-Each chunk is converted into a numerical vector representation using:
-
-**Sentence Transformers — `all-MiniLM-L6-v2`**
-
-These embeddings capture semantic relationships between pieces of text.
-
----
-
-### 4. Vector Storage & Retrieval
-
-Embeddings are stored in **Qdrant**, a vector database.
-
-When a user asks a question:
-
-```text
-User Question
-      ↓
-Question Embedding
-      ↓
-Qdrant Semantic Search
-      ↓
-Relevant Chunks
-```
-
-This allows DocMind to search large documents based on meaning rather than relying only on exact keyword matches.
-
----
-
-## 🧠 Adaptive RAG
-
-A major design goal of DocMind is to avoid treating every question as a simple top-k retrieval problem.
-
-For a focused query such as:
-
-> "Explain the GCD question."
-
-normal RAG can efficiently retrieve the relevant section.
-
-However, some queries require more context.
-
-For example:
-
-> "Give me the solution to the prime-counting question."
-
-The first retrieved chunk might contain the question but not its solution.
-
-Instead of immediately analyzing the entire document, DocMind can progressively expand the context:
-
-```text
-Initial Retrieval
-      ↓
-Chunk 7
-      ↓
-LLM checks context
-      ↓
-Information is partial
-      ↓
-Retrieve neighboring chunks
-      ↓
-Chunks 6 + 7 + 8
-      ↓
-LLM checks again
-      ↓
-Enough context?
-      │
-   ┌──┴──┐
-  YES    NO
-   │      │
-   ▼      ▼
- Answer  Deeper
-         Document
-         Analysis
-```
-
-This approach combines the efficiency of RAG with the reasoning capabilities of an LLM.
-
----
-
-## 🎯 Handling Different Query Types
-
-DocMind is designed to handle different levels of document interaction.
-
-### Specific Questions
-
-Example:
-
-> "Explain the GCD question."
-
-Uses targeted semantic retrieval to locate the relevant content.
-
-### Context-Dependent Questions
-
-Example:
-
-> "Give me the solution to this question."
-
-If the initial chunk contains only the question, surrounding chunks can be retrieved to recover the missing solution.
-
-### Document-Level Questions
-
-Examples:
-
-> "How many questions are in this PDF?"
-
-> "Classify all questions according to topic."
-
-> "Find all array questions."
-
-These require broader document understanding rather than relying on only a few semantically similar chunks.
 
 ---
 
 ## 🛠️ Technology Stack
 
-### Backend
+### **Web App & API Gateway (Node.js Runtime)**
+- **Backend**: Node.js, TypeScript, Express 5
+- **Auth & Uploads**: `jsonwebtoken`, `bcryptjs`, `multer`
+- **PDF & AI**: `pdfjs-dist`, `@google/genai` (`gemini-4-hydrogen`, `gemini-embedding-2`), custom BM25 + Cosine Hybrid Search
+- **Frontend**: HTML5, CSS3, Vanilla JavaScript (`frontend/`) with XSS-safe Markdown rendering
 
-* **Python**
-* **Django**
-* **Django REST Framework**
-* **JWT Authentication**
+### **Standalone Python AI Microservice (`python_ai_service/`, No LangChain)**
+- **Framework**: FastAPI + Uvicorn
+- **PDF Extraction**: `PyMuPDF` (`fitz`) + Gemini PDF OCR fallback
+- **Local Embeddings**: `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim, zero API cost)
+- **Vector + Hybrid Search**: `qdrant-client` (Qdrant cosine search) + BM25
+- **Adaptive RAG LLM**: `google-genai` (`gemini-4-hydrogen` with Pydantic structured schemas)
 
-### AI / NLP
-
-* **Sentence Transformers**
-* **all-MiniLM-L6-v2**
-* **LLM-based document reasoning**
-
-### Vector Database
-
-* **Qdrant**
-
-### Database
-
-* **SQLite** for development
-
-### Frontend
-
-* **HTML**
-* **CSS**
-* **JavaScript**
-
-### Development
-
-* **VS Code**
-* **Git & GitHub**
+### **Recommended Production Database Pairing**
+- **MySQL**: Users, documents, and relational metadata (`ON DELETE CASCADE`)
+- **Qdrant**: Dense embeddings + `document_id` / `chunk_order` payloads
 
 ---
 
 ## 📁 Project Structure
 
 ```text
-DOCMINDAI/
-│
-├── backend/
-│   ├── manage.py
-│   ├── requirements.txt
-│   ├── core/
-│   └── ...
-│
+.
+├── server.ts                        # Express server (serves API + frontend on port 3000)
+├── src/
+│   ├── store.ts                     # In-memory store (Users, Documents, Ordered Chunks)
+│   ├── middleware/auth.ts           # JWT Bearer authentication
+│   ├── routes/
+│   │   ├── auth.ts                  # /api/auth/register/, login/, profile/
+│   │   └── documents.ts             # /api/documents/ (CRUD, upload, Adaptive RAG chat)
+│   └── services/
+│       ├── pdfService.ts            # pdfjs-dist + Gemini OCR fallback
+│       ├── chunkService.ts          # Paragraph/sentence-aware chunking
+│       ├── vectorService.ts         # Hybrid search (Embeddings + BM25) & neighbor expansion
+│       └── geminiService.ts         # @google/genai embeddings, verification, batch analysis
 ├── frontend/
-│   ├── index.html
-│   ├── dashboard.html
-│   ├── chat.html
-│   ├── css/
-│   └── js/
-│
-├── .gitignore
-└── README.md
+│   ├── index.html                   # Login page
+│   ├── register.html                # Registration page
+│   ├── dashboard.html               # PDF upload & document library
+│   ├── chat.html                    # Formatted Markdown document chat
+│   ├── css/style.css
+│   └── js/                          # auth.js, register.js, dashboard.js, chat.js
+├── python_ai_service/               # Standalone Python FastAPI AI service (for external import)
+│   ├── main.py                      # /ai/ingest, /ai/chat, /ai/documents/{id}
+│   ├── config.py
+│   ├── requirements.txt
+│   ├── README.md                    # MySQL schema + Node-to-Python integration guide
+│   └── services/
+│       ├── pdf_service.py
+│       ├── chunk_service.py
+│       ├── embedding_service.py
+│       ├── qdrant_service.py
+│       └── adaptive_rag_service.py
+├── .env.example
+├── package.json
+└── tsconfig.json
 ```
 
 ---
 
-## 🔑 Core Engineering Concepts
+## 🔌 API Endpoints
 
-DocMind AI demonstrates practical implementation of:
+### **Auth**
+- `POST /api/auth/register/` — Register user (`email`, `password`, `password2`)
+- `POST /api/auth/login/` — Obtain JWT `access` and `refresh` tokens
+- `GET /api/auth/profile/` — Get authenticated user profile
 
-* Retrieval-Augmented Generation (RAG)
-* Semantic search
-* Vector embeddings
-* Vector databases
-* Context retrieval
-* Document chunking
-* LLM reasoning
-* Adaptive retrieval
-* Context expansion
-* Document-level analysis
-* REST API development
-* JWT authentication
-* Full-stack application architecture
+### **Documents & Adaptive RAG Chat**
+- `GET /api/documents/` — List authenticated user's uploaded documents
+- `GET /api/documents/:id/` — Get document metadata & chunk count
+- `POST /api/documents/upload/` — Upload & index a PDF (`multipart/form-data`: `title`, `file`)
+- `POST /api/documents/chat/` — Ask a question (`{ document_id, question }`) → `{ answer, strategy, chunks_used }`
+- `DELETE /api/documents/:id/` — Delete a document and its chunks
 
 ---
 
-## 🚀 Future Improvements
+## 🚀 Running Locally
 
-The architecture is designed to support further improvements such as:
+### **1. Node.js Full-Stack App**
+```bash
+npm install
+cp .env.example .env
+# Add GEMINI_API_KEY and JWT_SECRET to .env
+npm run dev
+```
+Open `http://localhost:3000`.
 
-* Advanced document structure detection
-* Better question/answer extraction
-* Document summarization
-* Multi-document search
-* Source citations
-* Highlighting supporting document sections
-* Conversation memory
-* Improved document-level reasoning
-* Background processing for large documents
-* Production vector database deployment
-
----
-
-## 🎯 Project Goal
-
-The goal of DocMind AI is to move beyond simple **"chat with PDF"** functionality toward a system that can understand how information is organized inside documents and choose an appropriate retrieval strategy based on the user's request.
-
-Rather than treating every query the same way, DocMind is designed to progressively move from:
-
-**semantic retrieval → contextual expansion → deeper document analysis**
-
-when additional understanding is required.
-
----
-
-## 👨‍💻 Author
-
-Built as a full-stack AI engineering project exploring practical applications of:
-
-**RAG + Vector Search + LLM Reasoning + Document Intelligence**
-
----
-
-## ⭐ If you find this project interesting
-
-Feel free to explore the repository, review the architecture, and experiment with the document intelligence pipeline.
+### **2. Optional Python FastAPI AI Service (External Deployment)**
+See [`python_ai_service/README.md`](python_ai_service/README.md) for running the Python AI service on port `8001` with `PyMuPDF`, `all-MiniLM-L6-v2`, and **Qdrant**, and connecting it to a Node.js + MySQL backend.
