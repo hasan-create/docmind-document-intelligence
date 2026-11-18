@@ -4,11 +4,6 @@
     box-sizing: border-box;
 }
 
-
-/* =========================
-   GLOBAL
-========================= */
-
 body {
     font-family: Arial, sans-serif;
     background: #f5f7fb;
@@ -16,10 +11,8 @@ body {
     color: #111;
 }
 
-
 /* =========================
    AUTH PAGES
-   LOGIN / REGISTER
 ========================= */
 
 .auth-container {
@@ -28,44 +21,30 @@ body {
     min-height: 100vh;
     margin: auto;
     padding: 20px;
-
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-
 .auth-card {
     width: 100%;
-
     background: white;
-
     padding: 40px;
-
     border-radius: 12px;
-
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
-
 
 .auth-card h1 {
     text-align: center;
-
     font-size: 32px;
-
     margin-bottom: 10px;
 }
 
-
 .subtitle {
     text-align: center;
-
     color: #666;
-
     margin-bottom: 30px;
 }
-
 
 /* =========================
    FORM
@@ -75,35 +54,24 @@ body {
     margin-bottom: 20px;
 }
 
-
 .form-group label {
     display: block;
-
     margin-bottom: 8px;
-
     font-weight: 600;
 }
 
-
 .form-group input {
     width: 100%;
-
     padding: 12px;
-
     border: 1px solid #ddd;
-
     border-radius: 6px;
-
     font-size: 15px;
 }
 
-
 .form-group input:focus {
     outline: none;
-
     border-color: #555;
 }
-
 
 /* =========================
    BUTTON
@@ -111,67 +79,51 @@ body {
 
 .primary-btn {
     width: 100%;
-
     padding: 13px;
-
     border: none;
-
     border-radius: 6px;
-
     background: #111;
-
     color: white;
-
     font-size: 16px;
-
     cursor: pointer;
 }
-
 
 .primary-btn:hover {
     background: #333;
 }
 
-
-/* =========================
-   ERROR
-========================= */
+.primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 
 .error-message {
     color: #d32f2f;
-
     text-align: center;
-
     margin-top: 15px;
 }
 
-
-/* =========================
-   AUTH SWITCH
-========================= */
+.success-message {
+    color: #2e7d32;
+    text-align: center;
+    margin-top: 15px;
+}
 
 .switch-auth {
     text-align: center;
-
     margin-top: 25px;
-
     color: #666;
 }
 
-
 .switch-auth a {
     color: #111;
-
     font-weight: 600;
-
     text-decoration: none;
 }
-
 
 .switch-auth a:hover {
     text-decoration: underline;
 }
-
 
 /* =========================
    NAVBAR
@@ -179,49 +131,37 @@ body {
 
 .navbar {
     width: 100%;
-
     padding: 18px 50px;
-
     background: white;
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     border-bottom: 1px solid #e5e5e5;
 }
 
-
 .navbar h2 {
     margin: 0;
-
     font-size: 24px;
 }
 
+.navbar-brand span {
+    font-size: 13px;
+    color: #666;
+}
 
 .navbar button {
     padding: 10px 18px;
-
     border: none;
-
     border-radius: 6px;
-
     background: #111;
-
     color: white;
-
     cursor: pointer;
-
     font-size: 14px;
 }
-
 
 .navbar button:hover {
     background: #333;
 }
-
 
 /* =========================
    DASHBOARD
@@ -229,33 +169,33 @@ body {
 
 .dashboard {
     width: 100%;
-
     max-width: 1100px;
-
     margin: 0 auto;
-
     padding: 45px 25px;
 }
-
 
 .dashboard-header {
     margin-bottom: 30px;
 }
 
+.eyebrow,
+.section-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #666;
+    margin-bottom: 6px;
+}
 
 .dashboard-header h1 {
     font-size: 32px;
-
     margin-bottom: 8px;
 }
 
-
 .dashboard-header p {
     color: #666;
-
     font-size: 16px;
 }
-
 
 /* =========================
    UPLOAD
@@ -263,44 +203,55 @@ body {
 
 .upload-card {
     background: white;
-
     padding: 30px;
-
     border-radius: 12px;
-
-    box-shadow:
-        0 5px 20px rgba(0, 0, 0, 0.06);
-
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
     margin-bottom: 45px;
 }
 
-
 .upload-card h2 {
-    margin-bottom: 25px;
-
+    margin-bottom: 8px;
     font-size: 22px;
 }
 
+.upload-heading p {
+    color: #666;
+    margin-bottom: 20px;
+}
 
 .upload-card input[type="file"] {
     width: 100%;
-
     padding: 10px;
-
     border: 1px solid #ddd;
-
     border-radius: 6px;
-
     background: white;
 }
 
+.upload-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+}
 
-#uploadMessage {
-    margin-top: 15px;
-
+.upload-status p {
     color: #555;
 }
 
+.upload-loader {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #111;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 
 /* =========================
    DOCUMENTS
@@ -310,238 +261,50 @@ body {
     margin-top: 30px;
 }
 
-
 .documents-section h2 {
     font-size: 24px;
-
     margin-bottom: 20px;
 }
-
 
 #documentsList {
     display: grid;
-
-    grid-template-columns:
-        repeat(auto-fit, minmax(280px, 1fr));
-
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
 }
 
-
-.document-card {
+.document-card,
+.empty-state {
     background: white;
-
     padding: 25px;
-
     border-radius: 12px;
-
-    box-shadow:
-        0 5px 20px rgba(0, 0, 0, 0.06);
-
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
 }
 
+.document-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
 
 .document-card:hover {
     transform: translateY(-3px);
-
-    box-shadow:
-        0 8px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
-
 
 .document-card h3 {
     margin-bottom: 8px;
-
     font-size: 19px;
 }
 
-
 .document-card p {
     color: #666;
-
     margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.4;
 }
-
 
 .document-card .primary-btn {
     width: auto;
-
     padding: 10px 18px;
 }
-
-
-/* =========================
-   CHAT
-========================= */
-
-.chat-container {
-    width: 100%;
-
-    max-width: 900px;
-
-    margin: 0 auto;
-
-    padding: 40px 20px;
-}
-
-
-.chat-header {
-    margin-bottom: 25px;
-}
-
-
-.chat-header h1 {
-    font-size: 30px;
-
-    margin-bottom: 8px;
-}
-
-
-.chat-header p {
-    color: #666;
-}
-
-
-.chat-messages {
-    height: 500px;
-
-    overflow-y: auto;
-
-    background: white;
-
-    border-radius: 12px;
-
-    padding: 25px;
-
-    box-shadow:
-        0 5px 20px rgba(0, 0, 0, 0.06);
-
-    margin-bottom: 20px;
-}
-
-
-.chat-message {
-    max-width: 75%;
-
-    padding: 12px 16px;
-
-    margin-bottom: 15px;
-
-    border-radius: 10px;
-
-    line-height: 1.5;
-
-    white-space: pre-wrap;
-}
-
-
-.chat-message.user {
-    margin-left: auto;
-
-    background: #111;
-
-    color: white;
-}
-
-
-.chat-message.ai {
-    margin-right: auto;
-
-    background: #f0f0f0;
-
-    color: #222;
-}
-
-
-/* =========================
-   CHAT FORM
-========================= */
-
-.chat-form {
-    display: flex;
-
-    gap: 10px;
-}
-
-
-.chat-form input {
-    flex: 1;
-
-    padding: 14px;
-
-    border: 1px solid #ddd;
-
-    border-radius: 6px;
-
-    font-size: 15px;
-}
-
-
-.chat-form input:focus {
-    outline: none;
-
-    border-color: #555;
-}
-
-
-.chat-form button {
-    width: 100px;
-}
-
-
-/* =========================
-   RESPONSIVE
-========================= */
-
-@media (max-width: 700px) {
-
-    .navbar {
-        padding: 16px 20px;
-    }
-
-
-    .dashboard {
-        padding: 30px 15px;
-    }
-
-
-    .dashboard-header h1 {
-        font-size: 26px;
-    }
-
-
-    .upload-card {
-        padding: 20px;
-    }
-
-
-    .chat-container {
-        padding: 25px 15px;
-    }
-
-
-    .chat-messages {
-        height: 450px;
-    }
-
-
-    .chat-message {
-        max-width: 90%;
-    }
-
-
-    .auth-card {
-        padding: 30px 20px;
-    }
-
-}
-
-/* =========================
-   LIBRARY ACTIONS & BADGES
-========================= */
 
 .document-actions {
     display: flex;
@@ -564,40 +327,84 @@ body {
     border-color: #bbb;
 }
 
-.hidden {
-    display: none;
+.empty-state {
+    text-align: center;
+    padding: 40px 25px;
 }
 
-.upload-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 12px;
+.empty-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
 }
 
-.upload-loader {
-    width: 18px;
-    height: 18px;
-    border: 2px solid #e0e0e0;
-    border-top-color: #111;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+.empty-state h3 {
+    margin-bottom: 6px;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+.empty-state p {
+    color: #666;
+}
+
+/* =========================
+   CHAT
+========================= */
+
+.chat-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.chat-header {
+    margin-bottom: 25px;
+}
+
+.chat-header h1 {
+    font-size: 30px;
+    margin-bottom: 8px;
+}
+
+.chat-header p {
+    color: #666;
+}
+
+.chat-messages {
+    height: 500px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+    margin-bottom: 20px;
+}
+
+.chat-message {
+    max-width: 75%;
+    padding: 12px 16px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.chat-message.user {
+    margin-left: auto;
+    background: #111;
+    color: white;
+}
+
+.chat-message.ai {
+    margin-right: auto;
+    background: #f0f0f0;
+    color: #222;
+    white-space: normal;
 }
 
 .strategy-meta {
     margin-top: 8px;
     font-size: 12px;
     color: #666;
-}
-
-.chat-message.ai {
-    white-space: normal;
 }
 
 .ai-formatted-body p {
@@ -654,4 +461,60 @@ body {
     background: transparent;
     padding: 0;
     color: inherit;
+}
+
+.chat-form {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-form input {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+.chat-form input:focus {
+    outline: none;
+    border-color: #555;
+}
+
+.chat-form button {
+    width: 100px;
+}
+
+@media (max-width: 700px) {
+    .navbar {
+        padding: 16px 20px;
+    }
+
+    .dashboard {
+        padding: 30px 15px;
+    }
+
+    .dashboard-header h1 {
+        font-size: 26px;
+    }
+
+    .upload-card {
+        padding: 20px;
+    }
+
+    .chat-container {
+        padding: 25px 15px;
+    }
+
+    .chat-messages {
+        height: 450px;
+    }
+
+    .chat-message {
+        max-width: 90%;
+    }
+
+    .auth-card {
+        padding: 30px 20px;
+    }
 }

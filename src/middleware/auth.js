@@ -1,30 +1,10 @@
-import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { store } from "../store.js";
 
 export const JWT_SECRET =
   process.env.JWT_SECRET || "docmind-dev-secret-change-in-production";
 
-export interface AuthenticatedUser {
-  id: number;
-  email: string;
-}
-
-export interface AuthenticatedRequest extends Request {
-  user?: AuthenticatedUser;
-}
-
-interface JwtPayload {
-  user_id: number;
-  email: string;
-  token_type?: string;
-}
-
-export function authenticateToken(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): void {
+export function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({
@@ -36,7 +16,7 @@ export function authenticateToken(
   const token = authHeader.slice("Bearer ".length).trim();
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = store.findUserById(decoded.user_id);
 
     if (!user) {

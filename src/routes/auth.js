@@ -1,16 +1,12 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { store } from "../store.js";
-import {
-  AuthenticatedRequest,
-  authenticateToken,
-  JWT_SECRET,
-} from "../middleware/auth.js";
+import { authenticateToken, JWT_SECRET } from "../middleware/auth.js";
 
 const router = Router();
 
-router.post("/register/", async (req: Request, res: Response) => {
+router.post("/register/", async (req, res) => {
   try {
     const { email, password, password2 } = req.body ?? {};
 
@@ -48,7 +44,7 @@ router.post("/register/", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/login/", async (req: Request, res: Response) => {
+router.post("/login/", async (req, res) => {
   try {
     const { email, password } = req.body ?? {};
 
@@ -96,15 +92,11 @@ router.post("/login/", async (req: Request, res: Response) => {
   }
 });
 
-router.get(
-  "/profile/",
-  authenticateToken,
-  (req: AuthenticatedRequest, res: Response) => {
-    res.status(200).json({
-      id: req.user?.id,
-      email: req.user?.email,
-    });
-  }
-);
+router.get("/profile/", authenticateToken, (req, res) => {
+  res.status(200).json({
+    id: req.user?.id,
+    email: req.user?.email,
+  });
+});
 
 export default router;

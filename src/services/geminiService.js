@@ -1,7 +1,6 @@
 import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
-import { ChunkRecord } from "../store.js";
 
-function getAIClient(): GoogleGenAI {
+function getAIClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -18,7 +17,7 @@ function getAIClient(): GoogleGenAI {
   });
 }
 
-function isQuotaError(err: unknown): boolean {
+function isQuotaError(err) {
   const msg = err instanceof Error ? err.message : String(err);
   return (
     msg.includes("429") ||
@@ -27,8 +26,19 @@ function isQuotaError(err: unknown): boolean {
   );
 }
 
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
-  let lastError: unknown;
+export function formatGeminiError(err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (isQuotaError(err)) {
+    return "Gemini API Free Tier quota exceeded. Please try again later or select an API key with available quota in Settings > Secrets.";
+  }
+  if (msg.includes("API_KEY_INVALID") || msg.includes("PERMISSION_DENIED")) {
+    return "Invalid or unauthorized Gemini API key. Please check Settings > Secrets.";
+  }
+  return msg;
+}
+
+async function withRetry(fn, maxRetries = 2) {
+  let lastError;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
@@ -47,44 +57,52 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
   throw lastError;
 }
 
-export async function extractTextFromPdfWithGemini(
-  buffer: Buffer
-): Promise<string> {
+async function generateWithFallback(ai, buildRequest) {
+  try {
+    return await withRetry(() =>
+      ai.models.generateContent(buildRequest("gemini-4-hydrogen"))
+    );
+  } catch (err) {
+    if (isQuotaError(err)) {
+      console.warn(
+        "gemini-4-hydrogen hit 429 quota; retrying with gemini-3.1-flash-lite."
+      );
+      return await withRetry(() =>
+        ai.models.generateContent(buildRequest("gemini-3.1-flash-lite"))
+      );
+    }
+    throw err;
+  }
+}
+
+export async function extractTextFromPdfWithGemini(buffer) {
   const ai = getAIClient();
   const base64Pdf = buffer.toString("base64");
 
-  const response = await withRetry(() =>
-    ai.models.generateContent({
-      model: "gemini-4-hydrogen",
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: "application/pdf",
-              data: base64Pdf,
-            },
+  const response = await generateWithFallback(ai, (model) => ({
+    model,
+    contents: {
+      parts: [
+        {
+          inlineData: {
+            mimeType: "application/pdf",
+            data: base64Pdf,
           },
-          {
-            text: "Extract and transcribe all readable text from this PDF document verbatim in reading order. Do not summarize or add commentary.",
-          },
-        ],
-      },
-      config: {
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-      },
-    })
-  );
+        },
+        {
+          text: "Extract and transcribe all readable text from this PDF document verbatim in reading order. Do not summarize or add commentary.",
+        },
+      ],
+    },
+    config: {
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+    },
+  }));
 
   return (response.text ?? "").trim();
 }
 
-/**
- * Generates a query embedding. Returns null on Free Tier 429 quota limit
- * so Hybrid Search seamlessly continues using BM25.
- */
-export async function generateQueryEmbedding(
-  text: string
-): Promise<number[] | null> {
+export async function generateQueryEmbedding(text) {
   const ai = getAIClient();
   try {
     const result = await withRetry(() =>
@@ -105,20 +123,13 @@ export async function generateQueryEmbedding(
   }
 }
 
-/**
- * Generates embeddings for document chunks in batches.
- * Gracefully falls back to null for remaining chunks if Free Tier 429 quota is reached,
- * ensuring large PDFs still index cleanly with BM25 instead of failing upload.
- */
-export async function generateChunkEmbeddings(
-  texts: string[]
-): Promise<(number[] | null)[]> {
+export async function generateChunkEmbeddings(texts) {
   if (texts.length === 0) {
     return [];
   }
 
   const ai = getAIClient();
-  const results: (number[] | null)[] = new Array(texts.length).fill(null);
+  const results = new Array(texts.length).fill(null);
   const batchSize = 25;
 
   for (let i = 0; i < texts.length; i += batchSize) {
@@ -155,22 +166,7 @@ export async function generateChunkEmbeddings(
   return results;
 }
 
-export type EvidenceStatus = "SUFFICIENT" | "PARTIAL" | "NONE";
-
-export interface VerificationResult {
-  status: EvidenceStatus;
-  answer: string;
-}
-
-/**
- * Adaptive RAG Stage 2 & 3:
- * Evaluates whether retrieved context is SUFFICIENT, PARTIAL (needs neighbor chunks),
- * or NONE (not present in these chunks / needs document-wide batch analysis).
- */
-export async function verifyAndAnswerFromContext(
-  question: string,
-  chunks: ChunkRecord[]
-): Promise<VerificationResult> {
+export async function verifyAndAnswerFromContext(question, chunks) {
   const ai = getAIClient();
 
   const contextText = chunks
@@ -201,39 +197,34 @@ Question:
 ${question}
 `;
 
-  const response = await withRetry(() =>
-    ai.models.generateContent({
-      model: "gemini-4-hydrogen",
-      contents: prompt,
-      config: {
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            status: {
-              type: Type.STRING,
-              description: "One of SUFFICIENT, PARTIAL, or NONE",
-            },
-            answer: {
-              type: Type.STRING,
-              description:
-                "Complete, well-formatted Markdown answer (using headings, bold labels, and bullet/numbered lists with newlines) when status is SUFFICIENT, otherwise empty string.",
-            },
+  const response = await generateWithFallback(ai, (model) => ({
+    model,
+    contents: prompt,
+    config: {
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          status: {
+            type: Type.STRING,
+            description: "One of SUFFICIENT, PARTIAL, or NONE",
           },
-          required: ["status", "answer"],
+          answer: {
+            type: Type.STRING,
+            description:
+              "Complete, well-formatted Markdown answer (using headings, bold labels, and bullet/numbered lists with newlines) when status is SUFFICIENT, otherwise empty string.",
+          },
         },
+        required: ["status", "answer"],
       },
-    })
-  );
+    },
+  }));
 
   try {
-    const parsed = JSON.parse((response.text ?? "{}").trim()) as {
-      status?: string;
-      answer?: string;
-    };
+    const parsed = JSON.parse((response.text ?? "{}").trim());
     const rawStatus = (parsed.status ?? "").toUpperCase();
-    const status: EvidenceStatus =
+    const status =
       rawStatus === "SUFFICIENT" ||
       rawStatus === "PARTIAL" ||
       rawStatus === "NONE"
@@ -248,19 +239,12 @@ ${question}
   }
 }
 
-/**
- * Adaptive RAG Stage 4 (Map-Reduce Batch Analysis):
- * Scans ordered batches of the full document when local chunks + neighbors aren't enough.
- */
-export async function runBatchAnalysis(
-  question: string,
-  allChunks: ChunkRecord[]
-): Promise<{ answer: string; batchesScanned: number }> {
+export async function runBatchAnalysis(question, allChunks) {
   const ai = getAIClient();
   const maxBatchChars = 18000;
-  const maxBatches = 5; // Caps Free Tier RPM usage on huge PDFs
+  const maxBatches = 5;
 
-  const batches: string[] = [];
+  const batches = [];
   let current = "";
 
   for (const chunk of allChunks) {
@@ -277,7 +261,7 @@ export async function runBatchAnalysis(
     batches.push(current);
   }
 
-  const extractedFindings: string[] = [];
+  const extractedFindings = [];
 
   for (let idx = 0; idx < batches.length; idx++) {
     const batchPrompt = `
@@ -292,30 +276,25 @@ Question:
 ${question}
 `;
 
-    const res = await withRetry(() =>
-      ai.models.generateContent({
-        model: "gemini-4-hydrogen",
-        contents: batchPrompt,
-        config: {
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              found: { type: Type.BOOLEAN },
-              evidence: { type: Type.STRING },
-            },
-            required: ["found", "evidence"],
+    const res = await generateWithFallback(ai, (model) => ({
+      model,
+      contents: batchPrompt,
+      config: {
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            found: { type: Type.BOOLEAN },
+            evidence: { type: Type.STRING },
           },
+          required: ["found", "evidence"],
         },
-      })
-    );
+      },
+    }));
 
     try {
-      const parsed = JSON.parse((res.text ?? "{}").trim()) as {
-        found?: boolean;
-        evidence?: string;
-      };
+      const parsed = JSON.parse((res.text ?? "{}").trim());
       if (parsed.found && parsed.evidence?.trim()) {
         extractedFindings.push(
           `Section ${idx + 1}:\n${parsed.evidence.trim()}`
@@ -333,7 +312,6 @@ ${question}
     };
   }
 
-  // Final LLM Reduce step
   const finalPrompt = `
 You are a helpful AI assistant.
 Synthesize a clear, well-structured final answer to the user's question using ONLY the verified document evidence below.
@@ -353,15 +331,13 @@ Question:
 ${question}
 `;
 
-  const finalRes = await withRetry(() =>
-    ai.models.generateContent({
-      model: "gemini-4-hydrogen",
-      contents: finalPrompt,
-      config: {
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-      },
-    })
-  );
+  const finalRes = await generateWithFallback(ai, (model) => ({
+    model,
+    contents: finalPrompt,
+    config: {
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+    },
+  }));
 
   return {
     answer:

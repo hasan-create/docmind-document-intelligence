@@ -89,11 +89,11 @@ Instead of sending an entire document to an LLM for every question or relying on
 
 ## 🛠️ Technology Stack
 
-### **Web App & API Gateway (Node.js Runtime)**
-- **Backend**: Node.js, TypeScript, Express 5
+### **Web App & API Gateway (Plain JavaScript — Node.js + React)**
+- **Frontend**: React 19 (`.jsx`), React Router, HTML5, CSS3 (`client/` built with Vite) with XSS-safe Markdown rendering
+- **Backend**: Node.js, plain JavaScript ESM (`.js`), Express 5 (`server.js` + `src/*.js`)
 - **Auth & Uploads**: `jsonwebtoken`, `bcryptjs`, `multer`
-- **PDF & AI**: `pdfjs-dist`, `@google/genai` (`gemini-4-hydrogen`, `gemini-embedding-2`), custom BM25 + Cosine Hybrid Search
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript (`frontend/`) with XSS-safe Markdown rendering
+- **PDF & AI**: `pdfjs-dist`, `@google/genai` (`gemini-4-hydrogen`, `gemini-embedding-2`), custom BM25 + Cosine Hybrid Search (or optional proxy to `python_ai_service` via `AI_SERVICE_URL`)
 
 ### **Standalone Python AI Microservice (`python_ai_service/`, No LangChain)**
 - **Framework**: FastAPI + Uvicorn
@@ -112,25 +112,31 @@ Instead of sending an entire document to an LLM for every question or relying on
 
 ```text
 .
-├── server.ts                        # Express server (serves API + frontend on port 3000)
+├── server.js                        # Express server (serves /api/* + built React SPA on port 3000)
+├── vite.config.js                   # Vite configuration for React (.jsx) frontend
 ├── src/
-│   ├── store.ts                     # In-memory store (Users, Documents, Ordered Chunks)
-│   ├── middleware/auth.ts           # JWT Bearer authentication
+│   ├── store.js                     # In-memory store (Users, Documents, Ordered Chunks)
+│   ├── middleware/auth.js           # JWT Bearer authentication
 │   ├── routes/
-│   │   ├── auth.ts                  # /api/auth/register/, login/, profile/
-│   │   └── documents.ts             # /api/documents/ (CRUD, upload, Adaptive RAG chat)
+│   │   ├── auth.js                  # /api/auth/register/, login/, profile/
+│   │   └── documents.js             # /api/documents/ (CRUD, upload, Adaptive RAG chat / AI proxy)
 │   └── services/
-│       ├── pdfService.ts            # pdfjs-dist + Gemini OCR fallback
-│       ├── chunkService.ts          # Paragraph/sentence-aware chunking
-│       ├── vectorService.ts         # Hybrid search (Embeddings + BM25) & neighbor expansion
-│       └── geminiService.ts         # @google/genai embeddings, verification, batch analysis
-├── frontend/
-│   ├── index.html                   # Login page
-│   ├── register.html                # Registration page
-│   ├── dashboard.html               # PDF upload & document library
-│   ├── chat.html                    # Formatted Markdown document chat
-│   ├── css/style.css
-│   └── js/                          # auth.js, register.js, dashboard.js, chat.js
+│       ├── pdfService.js            # pdfjs-dist + Gemini OCR fallback
+│       ├── chunkService.js          # Paragraph/sentence-aware chunking
+│       ├── vectorService.js         # Hybrid search (Embeddings + BM25) & neighbor expansion
+│       └── geminiService.js         # @google/genai embeddings, verification, batch analysis
+├── client/
+│   ├── index.html                   # SPA HTML entry point
+│   └── src/
+│       ├── main.jsx                 # React root mount
+│       ├── App.jsx                  # React Router routes & auth guards
+│       ├── styles/style.css         # Application & Markdown formatting styles
+│       ├── utils/markdown.js        # XSS-safe Markdown-to-HTML renderer
+│       └── pages/
+│           ├── LoginPage.jsx        # Login page
+│           ├── RegisterPage.jsx     # Registration page
+│           ├── DashboardPage.jsx    # PDF upload & document library
+│           └── ChatPage.jsx         # Formatted Markdown document chat
 ├── python_ai_service/               # Standalone Python FastAPI AI service (for external import)
 │   ├── main.py                      # /ai/ingest, /ai/chat, /ai/documents/{id}
 │   ├── config.py
@@ -143,8 +149,7 @@ Instead of sending an entire document to an LLM for every question or relying on
 │       ├── qdrant_service.py
 │       └── adaptive_rag_service.py
 ├── .env.example
-├── package.json
-└── tsconfig.json
+└── package.json
 ```
 
 ---

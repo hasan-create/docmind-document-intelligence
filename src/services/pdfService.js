@@ -1,7 +1,7 @@
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { extractTextFromPdfWithGemini } from "./geminiService.js";
 
-export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
+export async function extractTextFromPdf(buffer) {
   let fullText = "";
 
   try {
@@ -32,7 +32,6 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
 
   fullText = fullText.trim();
 
-  // Fallback to Gemini multimodal PDF extraction for scanned/image-only or complex PDFs
   if (fullText.length < 20 && buffer.length <= 20 * 1024 * 1024) {
     console.log("Extracted text too short via pdfjs-dist; using Gemini PDF text extraction...");
     fullText = await extractTextFromPdfWithGemini(buffer);

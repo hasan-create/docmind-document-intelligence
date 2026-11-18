@@ -1,12 +1,4 @@
-/**
- * Paragraph- and sentence-aware recursive text chunker.
- * Preserves semantic boundaries while keeping chunk counts compact for Free Tier limits.
- */
-export function splitText(
-  text: string,
-  chunkSize = 1800,
-  overlap = 200
-): string[] {
+export function splitText(text, chunkSize = 1800, overlap = 200) {
   const normalized = text
     .replace(/\r\n/g, "\n")
     .replace(/[ \t]+/g, " ")
@@ -21,14 +13,13 @@ export function splitText(
     return [normalized];
   }
 
-  const chunks: string[] = [];
+  const chunks = [];
   let start = 0;
 
   while (start < normalized.length) {
     let end = Math.min(start + chunkSize, normalized.length);
 
     if (end < normalized.length) {
-      // Prefer breaking on paragraph, newline, sentence end, or whitespace
       const window = normalized.slice(start, end);
       const minBreak = Math.floor(chunkSize * 0.5);
 
@@ -61,8 +52,7 @@ export function splitText(
       break;
     }
 
-    const nextStart = Math.max(end - overlap, start + 1);
-    start = nextStart;
+    start = Math.max(end - overlap, start + 1);
   }
 
   return chunks;

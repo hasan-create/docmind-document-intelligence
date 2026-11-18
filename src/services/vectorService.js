@@ -1,4 +1,4 @@
-import { ChunkRecord, store } from "../store.js";
+import { store } from "../store.js";
 
 const STOPWORDS = new Set([
   "a", "an", "and", "are", "as", "at", "be", "but", "by", "for", "from",
@@ -8,7 +8,7 @@ const STOPWORDS = new Set([
   "when", "where", "which", "who", "why", "will", "with", "you", "your",
 ]);
 
-export function tokenize(text: string): string[] {
+export function tokenize(text) {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
@@ -16,7 +16,7 @@ export function tokenize(text: string): string[] {
     .filter((token) => token.length > 1 && !STOPWORDS.has(token));
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
+function cosineSimilarity(a, b) {
   if (a.length !== b.length || a.length === 0) {
     return 0;
   }
@@ -35,11 +35,8 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-function computeBm25Scores(
-  queryTokens: string[],
-  chunks: ChunkRecord[]
-): Map<number, number> {
-  const scores = new Map<number, number>();
+function computeBm25Scores(queryTokens, chunks) {
+  const scores = new Map();
   if (queryTokens.length === 0 || chunks.length === 0) {
     return scores;
   }
@@ -54,8 +51,7 @@ function computeBm25Scores(
 
   const uniqueQueryTerms = Array.from(new Set(queryTokens));
 
-  // Document frequency for each query term
-  const df = new Map<string, number>();
+  const df = new Map();
   for (const term of uniqueQueryTerms) {
     let count = 0;
     for (const docTokens of docTokensList) {
@@ -73,7 +69,7 @@ function computeBm25Scores(
     const docTokens = docTokensList[idx];
     const docLen = docTokens.length || 1;
 
-    const tfMap = new Map<string, number>();
+    const tfMap = new Map();
     for (const t of docTokens) {
       tfMap.set(t, (tfMap.get(t) ?? 0) + 1);
     }
@@ -99,23 +95,7 @@ function computeBm25Scores(
   return scores;
 }
 
-export interface SearchResult {
-  chunk: ChunkRecord;
-  score: number;
-  semanticScore: number;
-  bm25Score: number;
-}
-
-/**
- * Hybrid search combining dense Gemini cosine similarity + local BM25 ranking.
- * Gracefully falls back to pure BM25 if embeddings are unavailable for a chunk or query.
- */
-export function hybridSearch(
-  query: string,
-  queryEmbedding: number[] | null,
-  documentId: number,
-  limit = 4
-): SearchResult[] {
+export function hybridSearch(query, queryEmbedding, documentId, limit = 4) {
   const chunks = store.getChunksForDocument(documentId);
   if (chunks.length === 0) {
     return [];
@@ -124,23 +104,22 @@ export function hybridSearch(
   const queryTokens = tokenize(query);
   const bm25Raw = computeBm25Scores(queryTokens, chunks);
 
-  // Normalize BM25 scores to [0, 1] for fair hybrid fusion
   let maxBm25 = 0;
   for (const val of bm25Raw.values()) {
     if (val > maxBm25) maxBm25 = val;
   }
 
-  const results: SearchResult[] = chunks.map((chunk) => {
+  const results = chunks.map((chunk) => {
     const bm25Norm =
       maxBm25 > 0 ? (bm25Raw.get(chunk.id) ?? 0) / maxBm25 : 0;
 
     const hasDense =
       Boolean(queryEmbedding) &&
       Boolean(chunk.embedding) &&
-      queryEmbedding!.length === chunk.embedding!.length;
+      queryEmbedding.length === chunk.embedding.length;
 
     const semanticRaw = hasDense
-      ? Math.max(0, cosineSimilarity(queryEmbedding!, chunk.embedding!))
+      ? Math.max(0, cosineSimilarity(queryEmbedding, chunk.embedding))
       : 0;
 
     const combined = hasDense
@@ -163,21 +142,14 @@ export function hybridSearch(
   return results.slice(0, limit);
 }
 
-/**
- * Adaptive RAG Step 3: Fetch surrounding chunks (chunkOrder ± radius) in document order.
- */
-export function expandNeighborChunks(
-  documentId: number,
-  seedChunks: ChunkRecord[],
-  radius = 1
-): ChunkRecord[] {
+export function expandNeighborChunks(documentId, seedChunks, radius = 1) {
   const allChunks = store.getChunksForDocument(documentId);
-  const byOrder = new Map<number, ChunkRecord>();
+  const byOrder = new Map();
   for (const c of allChunks) {
     byOrder.set(c.chunkOrder, c);
   }
 
-  const selectedOrders = new Set<number>();
+  const selectedOrders = new Set();
   for (const seed of seedChunks) {
     for (let offset = -radius; offset <= radius; offset++) {
       const order = seed.chunkOrder + offset;
@@ -189,11 +161,11 @@ export function expandNeighborChunks(
 
   return Array.from(selectedOrders)
     .sort((a, b) => a - b)
-    .map((order) => byOrder.get(order)!)
+    .map((order) => byOrder.get(order))
     .filter(Boolean);
 }
 
-export function countVectors(): number {
+export function countVectors() {
   let count = 0;
   for (const chunk of store.chunksById.values()) {
     if (chunk.embedding) count++;
