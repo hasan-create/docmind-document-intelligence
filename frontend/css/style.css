@@ -538,3 +538,120 @@ body {
     }
 
 }
+
+/* =========================
+   LIBRARY ACTIONS & BADGES
+========================= */
+
+.document-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.secondary-btn {
+    padding: 10px 16px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.secondary-btn:hover {
+    background: #f5f5f5;
+    border-color: #bbb;
+}
+
+.hidden {
+    display: none;
+}
+
+.upload-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.upload-loader {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #111;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.strategy-meta {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #666;
+}
+
+.chat-message.ai {
+    white-space: normal;
+}
+
+.ai-formatted-body p {
+    margin-bottom: 8px;
+}
+
+.ai-formatted-body p:last-child {
+    margin-bottom: 0;
+}
+
+.ai-formatted-body h3,
+.ai-formatted-body h4,
+.ai-formatted-body h5 {
+    margin: 12px 0 6px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111;
+}
+
+.ai-formatted-body h3:first-child,
+.ai-formatted-body h4:first-child,
+.ai-formatted-body h5:first-child {
+    margin-top: 0;
+}
+
+.ai-formatted-body ul,
+.ai-formatted-body ol {
+    margin: 6px 0 10px 20px;
+}
+
+.ai-formatted-body li {
+    margin-bottom: 5px;
+    line-height: 1.5;
+}
+
+.ai-formatted-body code {
+    background: #e3e5ea;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.ai-formatted-body pre {
+    background: #1e1e1e;
+    color: #f5f5f5;
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+.ai-formatted-body pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+}

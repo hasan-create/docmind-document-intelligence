@@ -1,0 +1,8 @@
+{
+  "name": "DocMind AI",
+  "description": "AI-Powered Document Intelligence & Retrieval System using RAG and Gemini",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

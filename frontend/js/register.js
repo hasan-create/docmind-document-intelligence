@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "";
 
 
 const registerForm =
@@ -64,14 +64,17 @@ registerForm.addEventListener(
 
                 console.log(data);
 
-                errorMessage.textContent =
+                const firstError =
+                    data.email?.[0] ||
+                    data.password?.[0] ||
+                    data.error ||
                     "Registration failed. Check your details.";
+
+                errorMessage.textContent = firstError;
 
                 return;
             }
 
-
-            alert("Registration successful!");
 
             window.location.href = "index.html";
 
