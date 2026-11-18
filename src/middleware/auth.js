@@ -4,7 +4,7 @@ import { store } from "../store.js";
 export const JWT_SECRET =
   process.env.JWT_SECRET || "docmind-dev-secret-change-in-production";
 
-export function authenticateToken(req, res, next) {
+export async function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({
@@ -17,7 +17,7 @@ export function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = store.findUserById(decoded.user_id);
+    const user = await store.findUserById(decoded.user_id);
 
     if (!user) {
       res.status(401).json({

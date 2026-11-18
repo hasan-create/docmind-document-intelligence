@@ -95,8 +95,8 @@ function computeBm25Scores(queryTokens, chunks) {
   return scores;
 }
 
-export function hybridSearch(query, queryEmbedding, documentId, limit = 4) {
-  const chunks = store.getChunksForDocument(documentId);
+export async function hybridSearch(query, queryEmbedding, documentId, limit = 4) {
+  const chunks = await store.getChunksForDocument(documentId);
   if (chunks.length === 0) {
     return [];
   }
@@ -142,8 +142,8 @@ export function hybridSearch(query, queryEmbedding, documentId, limit = 4) {
   return results.slice(0, limit);
 }
 
-export function expandNeighborChunks(documentId, seedChunks, radius = 1) {
-  const allChunks = store.getChunksForDocument(documentId);
+export async function expandNeighborChunks(documentId, seedChunks, radius = 1) {
+  const allChunks = await store.getChunksForDocument(documentId);
   const byOrder = new Map();
   for (const c of allChunks) {
     byOrder.set(c.chunkOrder, c);
@@ -165,10 +165,6 @@ export function expandNeighborChunks(documentId, seedChunks, radius = 1) {
     .filter(Boolean);
 }
 
-export function countVectors() {
-  let count = 0;
-  for (const chunk of store.chunksById.values()) {
-    if (chunk.embedding) count++;
-  }
-  return count;
+export async function countVectors() {
+  return store.countVectors();
 }

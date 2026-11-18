@@ -146,7 +146,7 @@ Question:
         return (final_res.text or "").strip() or "I could not find the answer in the uploaded document."
 
     @classmethod
-    def answer_question(cls, document_id: int, question: str) -> dict:
+    def answer_question(cls, document_id: str, question: str) -> dict:
         all_chunks = QdrantService.get_all_chunks(document_id)
         if not all_chunks:
             raise ValueError("No indexed chunks found for this document.")

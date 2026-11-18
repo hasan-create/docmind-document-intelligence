@@ -36,70 +36,95 @@ function isDocumentWideQuery(question) {
   );
 }
 
-router.get("/", authenticateToken, (req, res) => {
-  const docs = store.listDocumentsByUser(req.user.id).map((doc) => ({
-    id: doc.id,
-    title: doc.title,
-    file: doc.filename,
-    uploaded_at: doc.uploadedAt,
-    chunk_count: doc.chunkCount || store.getChunksForDocument(doc.id).length,
-    embedding_mode: doc.embeddingMode,
-  }));
+router.get("/", authenticateToken, async (req, res) => {
+  try {
+    const userDocs = await store.listDocumentsByUser(req.user.id);
+    const docs = await Promise.all(
+      userDocs.map(async (doc) => ({
+        id: doc.id,
+        title: doc.title,
+        file: doc.filename,
+        uploaded_at: doc.uploadedAt,
+        chunk_count:
+          doc.chunkCount || (await store.getChunksForDocument(doc.id)).length,
+        embedding_mode: doc.embeddingMode,
+      }))
+    );
 
-  res.status(200).json({ documents: docs });
+    res.status(200).json({ documents: docs });
+  } catch (err) {
+    console.error("List documents error:", err);
+    res.status(500).json({ error: "Failed to load documents." });
+  }
 });
 
-router.get("/:id/", authenticateToken, (req, res) => {
-  const documentId = Number(req.params.id);
-  if (!Number.isInteger(documentId) || documentId <= 0) {
-    res.status(400).json({ error: "Invalid document ID." });
-    return;
-  }
+router.get("/:id/", authenticateToken, async (req, res) => {
+  try {
+    const documentId = String(req.params.id || "").trim();
+    if (!documentId) {
+      res.status(400).json({ error: "Invalid document ID." });
+      return;
+    }
 
-  const doc = store.findDocumentById(documentId);
-  if (!doc || doc.userId !== req.user.id) {
-    res.status(404).json({ error: "Document not found." });
-    return;
-  }
+    const doc = await store.findDocumentById(documentId);
+    if (!doc || doc.userId !== req.user.id) {
+      res.status(404).json({ error: "Document not found." });
+      return;
+    }
 
-  res.status(200).json({
-    id: doc.id,
-    title: doc.title,
-    file: doc.filename,
-    uploaded_at: doc.uploadedAt,
-    chunk_count: doc.chunkCount || store.getChunksForDocument(doc.id).length,
-    embedding_mode: doc.embeddingMode,
-  });
+    const chunkCount =
+      doc.chunkCount || (await store.getChunksForDocument(doc.id)).length;
+
+    res.status(200).json({
+      id: doc.id,
+      title: doc.title,
+      file: doc.filename,
+      uploaded_at: doc.uploadedAt,
+      chunk_count: chunkCount,
+      embedding_mode: doc.embeddingMode,
+    });
+  } catch (err) {
+    console.error("Get document error:", err);
+    res.status(500).json({ error: "Failed to load document." });
+  }
 });
 
 router.delete("/:id/", authenticateToken, async (req, res) => {
-  const documentId = Number(req.params.id);
-  if (!Number.isInteger(documentId) || documentId <= 0) {
-    res.status(400).json({ error: "Invalid document ID." });
-    return;
-  }
-
-  const doc = store.findDocumentById(documentId);
-  if (!doc || doc.userId !== req.user.id) {
-    res.status(404).json({ error: "Document not found." });
-    return;
-  }
-
-  if (AI_SERVICE_URL) {
-    try {
-      await fetch(`${AI_SERVICE_URL}/ai/documents/${documentId}`, {
-        method: "DELETE",
-        headers: INTERNAL_API_SECRET
-          ? { "X-Internal-Secret": INTERNAL_API_SECRET }
-          : {},
-      });
-    } catch (err) {
-      console.warn("Python AI delete error:", err);
+  try {
+    const documentId = String(req.params.id || "").trim();
+    if (!documentId) {
+      res.status(400).json({ error: "Invalid document ID." });
+      return;
     }
-  }
 
-  store.deleteDocument(documentId);
-  res.status(200).json({ message: "Document deleted." });
+    const doc = await store.findDocumentById(documentId);
+    if (!doc || doc.userId !== req.user.id) {
+      res.status(404).json({ error: "Document not found." });
+      return;
+    }
+
+    if (AI_SERVICE_URL) {
+      try {
+        await fetch(
+          `${AI_SERVICE_URL}/ai/documents/${encodeURIComponent(documentId)}`,
+          {
+            method: "DELETE",
+            headers: INTERNAL_API_SECRET
+              ? { "X-Internal-Secret": INTERNAL_API_SECRET }
+              : {},
+          }
+        );
+      } catch (err) {
+        console.warn("Python AI delete error:", err);
+      }
+    }
+
+    await store.deleteDocument(documentId);
+    res.status(200).json({ message: "Document deleted." });
+  } catch (err) {
+    console.error("Delete document error:", err);
+    res.status(500).json({ error: "Failed to delete document." });
+  }
 });
 
 router.post(
@@ -129,7 +154,13 @@ router.post(
 
       // If Python FastAPI AI service is configured externally, proxy ingestion to Python
       if (AI_SERVICE_URL) {
-        const doc = store.createDocument(req.user.id, title, file.originalname, "hybrid", 0);
+        const doc = await store.createDocument(
+          req.user.id,
+          title,
+          file.originalname,
+          "hybrid",
+          0
+        );
         try {
           const formData = new FormData();
           formData.append("document_id", String(doc.id));
@@ -149,12 +180,12 @@ router.post(
 
           const pyData = await pyRes.json();
           if (!pyRes.ok) {
-            store.deleteDocument(doc.id);
+            await store.deleteDocument(doc.id);
             res.status(pyRes.status).json({ error: pyData.detail || "Python AI ingest failed." });
             return;
           }
 
-          store.updateDocumentMeta(doc.id, {
+          await store.updateDocumentMeta(doc.id, {
             chunkCount: pyData.chunk_count ?? 0,
             embeddingMode: pyData.embedding_mode || "hybrid",
           });
@@ -169,7 +200,7 @@ router.post(
           });
           return;
         } catch (err) {
-          store.deleteDocument(doc.id);
+          await store.deleteDocument(doc.id);
           throw err;
         }
       }
@@ -196,7 +227,7 @@ router.post(
         embeddingMode = "partial_hybrid";
       }
 
-      const doc = store.createDocument(
+      const doc = await store.createDocument(
         req.user.id,
         title,
         file.originalname,
@@ -204,13 +235,12 @@ router.post(
         chunks.length
       );
 
-      for (let i = 0; i < chunks.length; i++) {
-        store.createChunk(doc.id, chunks[i], i + 1, embeddings[i]);
-      }
+      await store.createChunks(doc.id, chunks, embeddings);
 
       const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(2);
+      const totalVectors = await countVectors();
       console.log(
-        `UPLOAD COMPLETE — doc=${doc.id}, chunks=${chunks.length}, embedded=${embeddedCount}, mode=${embeddingMode}, total_vectors=${countVectors()}, took=${elapsedSec}s`
+        `UPLOAD COMPLETE — doc=${doc.id}, chunks=${chunks.length}, embedded=${embeddedCount}, mode=${embeddingMode}, total_vectors=${totalVectors}, took=${elapsedSec}s`
       );
 
       res.status(201).json({
@@ -238,9 +268,12 @@ router.post("/chat/", authenticateToken, async (req, res) => {
         ? req.body.question.trim()
         : "";
 
-    const documentId = Number(rawDocId);
-    if (!Number.isInteger(documentId) || documentId <= 0) {
-      res.status(400).json({ document_id: ["A valid integer is required."] });
+    const documentId =
+      rawDocId !== undefined && rawDocId !== null
+        ? String(rawDocId).trim()
+        : "";
+    if (!documentId) {
+      res.status(400).json({ document_id: ["A valid document ID is required."] });
       return;
     }
 
@@ -249,7 +282,7 @@ router.post("/chat/", authenticateToken, async (req, res) => {
       return;
     }
 
-    const doc = store.findDocumentById(documentId);
+    const doc = await store.findDocumentById(documentId);
     if (!doc || doc.userId !== req.user.id) {
       res.status(404).json({ error: "Document not found." });
       return;
@@ -278,7 +311,7 @@ router.post("/chat/", authenticateToken, async (req, res) => {
       return;
     }
 
-    const allChunks = store.getChunksForDocument(documentId);
+    const allChunks = await store.getChunksForDocument(documentId);
 
     if (isDocumentWideQuery(question) && allChunks.length > 4) {
       const batchResult = await runBatchAnalysis(question, allChunks);
@@ -295,7 +328,12 @@ router.post("/chat/", authenticateToken, async (req, res) => {
       ? await generateQueryEmbedding(question)
       : null;
 
-    const initialHits = hybridSearch(question, queryEmbedding, documentId, 4);
+    const initialHits = await hybridSearch(
+      question,
+      queryEmbedding,
+      documentId,
+      4
+    );
     const initialChunks = initialHits
       .map((h) => h.chunk)
       .sort((a, b) => a.chunkOrder - b.chunkOrder);
@@ -311,7 +349,7 @@ router.post("/chat/", authenticateToken, async (req, res) => {
     }
 
     if (stage2.status === "PARTIAL") {
-      const expandedChunks = expandNeighborChunks(
+      const expandedChunks = await expandNeighborChunks(
         documentId,
         initialChunks,
         1

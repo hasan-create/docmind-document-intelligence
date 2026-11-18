@@ -27,7 +27,7 @@ router.post("/register/", async (req, res) => {
       return;
     }
 
-    if (store.findUserByEmail(email)) {
+    if (await store.findUserByEmail(email)) {
       res.status(400).json({
         email: ["A user with this email already exists."],
       });
@@ -35,7 +35,7 @@ router.post("/register/", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    store.createUser(email, passwordHash);
+    await store.createUser(email, passwordHash);
 
     res.status(201).json({ message: "User registered successfully." });
   } catch (err) {
@@ -55,7 +55,7 @@ router.post("/login/", async (req, res) => {
       return;
     }
 
-    const user = store.findUserByEmail(String(email));
+    const user = await store.findUserByEmail(String(email));
     if (!user) {
       res.status(401).json({
         detail: "Invalid email or password.",

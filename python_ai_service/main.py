@@ -17,7 +17,7 @@ def verify_internal_secret(x_internal_secret: str = Header(default="")) -> None:
 
 
 class ChatRequest(BaseModel):
-    document_id: int
+    document_id: str
     question: str
 
 
@@ -28,7 +28,7 @@ def health():
 
 @app.post("/ai/ingest", dependencies=[Depends(verify_internal_secret)])
 async def ingest_document(
-    document_id: int = Form(...),
+    document_id: str = Form(...),
     file: UploadFile = File(...),
 ):
     file_bytes = await file.read()
@@ -73,6 +73,6 @@ def chat_with_document(payload: ChatRequest):
 
 
 @app.delete("/ai/documents/{document_id}", dependencies=[Depends(verify_internal_secret)])
-def delete_document_vectors(document_id: int):
+def delete_document_vectors(document_id: str):
     QdrantService.delete_document(document_id)
     return {"message": "Document vectors deleted."}

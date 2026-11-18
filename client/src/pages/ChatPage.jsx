@@ -114,7 +114,7 @@ export default function ChatPage() {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          document_id: Number(documentId),
+          document_id: documentId,
           question: trimmed,
         }),
       });

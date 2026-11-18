@@ -91,13 +91,13 @@ class QdrantService:
             client.create_payload_index(
                 collection_name=QDRANT_COLLECTION,
                 field_name="document_id",
-                field_schema=PayloadSchemaType.INTEGER,
+                field_schema=PayloadSchemaType.KEYWORD,
             )
 
     @classmethod
     def upsert_chunks(
         cls,
-        document_id: int,
+        document_id: str,
         chunks: List[str],
         embeddings: List[List[float]],
     ) -> None:
@@ -125,7 +125,7 @@ class QdrantService:
         client.upsert(collection_name=QDRANT_COLLECTION, points=points)
 
     @classmethod
-    def get_all_chunks(cls, document_id: int) -> List[dict]:
+    def get_all_chunks(cls, document_id: str) -> List[dict]:
         client = cls.get_client()
         cls.ensure_collection()
 
@@ -168,7 +168,7 @@ class QdrantService:
     @classmethod
     def hybrid_search(
         cls,
-        document_id: int,
+        document_id: str,
         query: str,
         query_embedding: List[float],
         limit: int = 4,
@@ -220,7 +220,7 @@ class QdrantService:
     @classmethod
     def expand_neighbor_chunks(
         cls,
-        document_id: int,
+        document_id: str,
         seed_chunks: List[dict],
         radius: int = 1,
     ) -> List[dict]:
@@ -237,7 +237,7 @@ class QdrantService:
         return [by_order[order] for order in sorted(selected_orders)]
 
     @classmethod
-    def delete_document(cls, document_id: int) -> None:
+    def delete_document(cls, document_id: str) -> None:
         client = cls.get_client()
         cls.ensure_collection()
         client.delete(

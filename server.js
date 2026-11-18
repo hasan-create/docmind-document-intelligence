@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./src/routes/auth.js";
 import documentRoutes from "./src/routes/documents.js";
+import { initStore } from "./src/store.js";
 
 const app = express();
 const PORT = 3000;
@@ -50,6 +51,13 @@ app.use((err, _req, res, _next) => {
   res.status(400).json({ error: message });
 });
 
-app.listen(PORT, HOST, () => {
-  console.log(`DocMind AI server running at http://${HOST}:${PORT}`);
-});
+initStore()
+  .then(() => {
+    app.listen(PORT, HOST, () => {
+      console.log(`DocMind AI server running at http://${HOST}:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize database store:", err);
+    process.exit(1);
+  });

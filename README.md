@@ -92,6 +92,7 @@ Instead of sending an entire document to an LLM for every question or relying on
 ### **Web App & API Gateway (Plain JavaScript — Node.js + React)**
 - **Frontend**: React 19 (`.jsx`), React Router, HTML5, CSS3 (`client/` built with Vite) with XSS-safe Markdown rendering
 - **Backend**: Node.js, plain JavaScript ESM (`.js`), Express 5 (`server.js` + `src/*.js`)
+- **Database**: **MongoDB** via **Mongoose** (`MONGODB_URI`, with automatic in-memory fallback when unset)
 - **Auth & Uploads**: `jsonwebtoken`, `bcryptjs`, `multer`
 - **PDF & AI**: `pdfjs-dist`, `@google/genai` (`gemini-4-hydrogen`, `gemini-embedding-2`), custom BM25 + Cosine Hybrid Search (or optional proxy to `python_ai_service` via `AI_SERVICE_URL`)
 
@@ -102,9 +103,9 @@ Instead of sending an entire document to an LLM for every question or relying on
 - **Vector + Hybrid Search**: `qdrant-client` (Qdrant cosine search) + BM25
 - **Adaptive RAG LLM**: `google-genai` (`gemini-4-hydrogen` with Pydantic structured schemas)
 
-### **Recommended Production Database Pairing**
-- **MySQL**: Users, documents, and relational metadata (`ON DELETE CASCADE`)
-- **Qdrant**: Dense embeddings + `document_id` / `chunk_order` payloads
+### **Production Database Pairing**
+- **MongoDB**: Users, documents, and metadata (`src/models/User.js`, `Document.js`, `Chunk.js`)
+- **Qdrant**: Dense embeddings + `document_id` (ObjectId string) / `chunk_order` payloads
 
 ---
 
@@ -115,7 +116,8 @@ Instead of sending an entire document to an LLM for every question or relying on
 ├── server.js                        # Express server (serves /api/* + built React SPA on port 3000)
 ├── vite.config.js                   # Vite configuration for React (.jsx) frontend
 ├── src/
-│   ├── store.js                     # In-memory store (Users, Documents, Ordered Chunks)
+│   ├── store.js                     # Dual-mode store: MongoDB (Mongoose) or in-memory fallback
+│   ├── models/                      # Mongoose schemas (User.js, Document.js, Chunk.js)
 │   ├── middleware/auth.js           # JWT Bearer authentication
 │   ├── routes/
 │   │   ├── auth.js                  # /api/auth/register/, login/, profile/
@@ -141,7 +143,7 @@ Instead of sending an entire document to an LLM for every question or relying on
 │   ├── main.py                      # /ai/ingest, /ai/chat, /ai/documents/{id}
 │   ├── config.py
 │   ├── requirements.txt
-│   ├── README.md                    # MySQL schema + Node-to-Python integration guide
+│   ├── README.md                    # MongoDB schemas + Node-to-Python integration guide
 │   └── services/
 │       ├── pdf_service.py
 │       ├── chunk_service.py
@@ -176,10 +178,10 @@ Instead of sending an entire document to an LLM for every question or relying on
 ```bash
 npm install
 cp .env.example .env
-# Add GEMINI_API_KEY and JWT_SECRET to .env
+# Add GEMINI_API_KEY, JWT_SECRET, and optional MONGODB_URI to .env
 npm run dev
 ```
 Open `http://localhost:3000`.
 
 ### **2. Optional Python FastAPI AI Service (External Deployment)**
-See [`python_ai_service/README.md`](python_ai_service/README.md) for running the Python AI service on port `8001` with `PyMuPDF`, `all-MiniLM-L6-v2`, and **Qdrant**, and connecting it to a Node.js + MySQL backend.
+See [`python_ai_service/README.md`](python_ai_service/README.md) for running the Python AI service on port `8001` with `PyMuPDF`, `all-MiniLM-L6-v2`, and **Qdrant**, and connecting it to your Node.js + **MongoDB** backend.
